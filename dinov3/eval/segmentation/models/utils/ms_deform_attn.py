@@ -10,7 +10,24 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 from torch.autograd import Function
-from torch.amp import custom_fwd, custom_bwd
+
+try:
+    from torch.amp import custom_fwd, custom_bwd
+except ImportError:  # PyTorch < 2.4
+    from torch.cuda.amp import custom_fwd as _custom_fwd, custom_bwd as _custom_bwd
+
+    def custom_fwd(fwd=None, *, cast_inputs=None, device_type=None):
+        return _custom_fwd(fwd=fwd, cast_inputs=cast_inputs)
+
+    def custom_bwd(bwd=None, *, device_type=None):
+        if bwd is None:
+
+            def _decorator(fn):
+                return _custom_bwd(fn)
+
+            return _decorator
+        return _custom_bwd(bwd)
+
 
 from torch.autograd.function import once_differentiable
 from torch.nn.init import constant_, xavier_uniform_
